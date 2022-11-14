@@ -1,21 +1,21 @@
-This backend utilizes flask, a web application framework, to expose apis to our frontend.
+# This backend utilizes flask, a web application framework, to expose apis to our frontend.
 
-Libraries needed to run back end locally:
+## Libraries needed to run back end locally:
 
-Autogluon
-pip3 install -U pip
-pip3 install -U setuptools wheel
-pip3 install torch==1.12+cpu torchvision==0.13.0+cpu torchtext==0.13.0 -f https://download.pytorch.org/whl/cpu/torch_stable.html
-pip3 install autogluon
+### Autogluon
+1. pip3 install -U pip
+2. pip3 install -U setuptools wheel
+3. pip3 install torch==1.12+cpu torchvision==0.13.0+cpu torchtext==0.13.0 -f https://download.pytorch.org/whl/cpu/torch_stable.html
+4. pip3 install autogluon
 
-Flask
+### Flask
 pip install flask python-dotenv
 
-Pandas
+### Pandas
 pip install pandas
 
-sklearn
+### sklearn
 pip install -U scikit-learn
 
-aif360
+### aif360
 pip install aif360
