@@ -11,14 +11,19 @@ import csv
 
 app = Flask(__name__)
 
-filelist = ['workfile.csv', 'workfile_train.csv', 'workfile_test.csv', 'workfile_test_predictions.csv']
+filelist = ['workfile.csv', 'workfile_train.csv',
+            'workfile_test.csv', 'workfile_test_predictions.csv']
+models_dir = 'agModels-predictClass'
+protected_attributes = ['age', 'sex', 'race', 'gender', 'ethnicity',
+                        'marital status', 'religion', 'national origin',
+                        'public assistance', 'disability', 'pregnancy', 'maternity']
 
 @app.route('/')
 def index():
     return render_template('test_api.html')
 
 
-@app.route('/', methods=['POST'])
+@app.route('/generate/model', methods=['POST'])
 def generate_model_from_input():
     # get the uploaded file
     uploaded_file = request.files['file']
@@ -40,8 +45,7 @@ def generate_model_from_input():
         train_data.to_csv(filelist[1], encoding='utf-8', index=False)
         test_data.to_csv(filelist[2], encoding='utf-8', index=False)
 
-        save_path = 'agModels-predictClass'  # specifies folder to store trained models
-        predictor = TabularPredictor(label=label, path=save_path).fit(
+        predictor = TabularPredictor(label=label, path=models_dir).fit(
             train_data=train_data, presets='best_quality')
         y_test = test_data[label]  # values to predict
         # delete label column
@@ -51,20 +55,21 @@ def generate_model_from_input():
         # save predictions
         test_data_nolabel[label] = y_pred
         test_data_nolabel.to_csv(filelist[3],
-                  encoding='utf-8', index=False)
+                                 encoding='utf-8', index=False)
 
         eval = predictor.evaluate_predictions(
             y_true=y_test, y_pred=y_pred, auxiliary_metrics=True)
         my_json_string = json.dumps(
-            {'Model': predictor.get_model_best(), 'Evaluation': eval, 'ModelPath': save_path})
+            {'Model': predictor.get_model_best(), 'Evaluation': eval, 'ModelPath': models_dir})
         return(my_json_string)
 
 # before generating a new model
-@app.route('/remove_existing_data_and_model', methods=['POST'])
-def remove_existing_model():
+
+
+@app.route('/purge', methods=['POST'])
+def purge_data():
     # remove generated directories and files from run
-    model_path = 'agModels-predictClass'
-    if path.isdir(model_path):
+    if path.isdir(models_dir):
         # shutil recursively removes files and directories residing in given path
         shutil.rmtree('agModels-predictClass')
     for file in filelist:
@@ -73,28 +78,42 @@ def remove_existing_model():
     return
 
 # On loading interactive page
-@app.route('/populate_default_data', methods=['POST'])
-def generate_default_data_score():
-    df = pd.read_csv("workfile_test_predictions.csv")
-    # select a single row from test csv
+
+
+@app.route('/generate/default', methods=['POST'])
+def get_default_data_score():
+    df = pd.read_csv(filelist[3])
+    # select a single row from test csv predictions
     df = df.sample()
-    print(df.to_json(orient = "records"))
+    return(df.to_json(orient="default"))
 
 
-# # When a user puts in their own values a clicks 'Calculate Score'
-# @app.route('/calculate_score', methods=['POST'])
-# def calculate_score_user_data_score():
-#     # get json input of features
-#     req = request.get_json
-#     df = pd.read_json(req)
-#     predictor = TabularPredictor.load('agModels-predictClass')
+# When a user puts in their own values a clicks 'Calculate Score'
+@app.route('/generate/calculate_score', methods=['POST'])
+def calculate_user_data_score():
+    # get json input of features
+    req = request.get_json
+    df = pd.read_json(req)
+    predictor = TabularPredictor.load(models_dir)
+    y_pred = predictor.predict(df)
+    return(y_pred.to_json(orient="prediction"))
 
-# @app.route('/get_model_bias', methods=['POST'])
-# def get_model_bias():
-#     # get the model
-#     path = request.form['save_path']
-#     predictor = TabularPredictor.load(path)
 
+@app.route('/protected/attributes', methods=['POST'])
+def get_protected_attributes():
+    # get the csv's protected attributes
+    df = pd.read_csv(filelist[3])
+    attribute_list = list(df)
+    # we don't know if the strings will be exactly the same so we will see 
+    # if any attributes contain attributes from the protected list
+    present_protected_attributes = []
+    for attr in attribute_list:
+        for prot in protected_attributes:
+            if prot in attr:
+                present_protected_attributes.append(attr)
+    my_json_string = json.dumps(
+            {'Protected': present_protected_attributes})
+    return(my_json_string)
 
 if (__name__ == "__main__"):
     app.run(host='0.0.0.0', port=105)
