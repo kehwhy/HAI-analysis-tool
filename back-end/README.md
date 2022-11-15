@@ -19,3 +19,6 @@ pip install -U scikit-learn
 
 ### aif360
 pip install aif360
+
+# When running the code:
+all path variables will read/write to the directory that you run from, i.e. if you run this code from DP/ the working csv and model folders will reside in DP.
