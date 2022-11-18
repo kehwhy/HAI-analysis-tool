@@ -22,3 +22,7 @@ pip install aif360
 
 # When running the code:
 all path variables will read/write to the directory that you run from, i.e. if you run this code from DP/ the working csv and model folders will reside in DP.
+
+# Servers
+* Running on http://127.0.0.1:105
+* Running on http://192.168.0.76:105

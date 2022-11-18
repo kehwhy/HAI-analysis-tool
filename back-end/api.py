@@ -156,7 +156,7 @@ def calculate_user_data_score():
 
 # calculate bias metrics
 @app.route('/generate/bias', methods=['POST'])
-def calculate_user_data_score():
+def calculate_bias():
     # get json input of features
     req = request.get_json
 
