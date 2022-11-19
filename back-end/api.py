@@ -13,6 +13,8 @@ from aif360.metrics import BinaryLabelDatasetMetric
 from aif360.datasets import StandardDataset
 from aif360.metrics import BinaryLabelDatasetMetric
 from sklearn.preprocessing import OrdinalEncoder
+import ast
+import itertools
 
 app = Flask(__name__)
 
@@ -35,6 +37,12 @@ processed_data_age_cat = {'age_cat_greater_than_45': 1,
 processed_data_race = {'African-American': 0, 'Asian': 1,
                        'Caucasion': 2, 'Hispanic': 3, 'Native American': 4, 'Other': 5}
 
+# For continuous page
+sex_perms = ['Male', 'Female']
+age_cat_perms = ['Greater than 45', '25-45', 'Less than 25']
+race_perms = ['Other', 'African-American',
+              'Hispanic', 'Asian', 'Native American']
+protected_atrributes = [sex_perms, age_cat_perms, race_perms]
 
 @app.route('/')
 def index():
@@ -64,8 +72,13 @@ def generate_model_from_input():
         train_data.to_csv(filelist[1], encoding='utf-8', index=False)
         test_data.to_csv(filelist[2], encoding='utf-8', index=False)
 
-        predictor = TabularPredictor(label=label, path=models_dir).fit(
-            train_data=train_data, presets='best_quality')
+        # If we've already trained the model then lets just load it (REMOVE IF TOOL IS EXPANDED PAST COMPAS)
+        if path.isdir(models_dir):
+            predictor = TabularPredictor.load(models_dir)
+        else:
+            predictor = TabularPredictor(label=label, path=models_dir).fit(
+                train_data=train_data, presets='best_quality')
+
         y_test = test_data[label]  # values to predict
         # delete label column
         test_data_nolabel = test_data.drop(columns=[label])
@@ -86,10 +99,10 @@ def generate_model_from_input():
 # before generating a new model
 @app.route('/purge', methods=['POST'])
 def purge_data():
-    # remove generated directories and files from run
-    if path.isdir(models_dir):
+    # KEEP COMMENTED BECAUSE TRAINING THE MODEL TAKES SO LONG
+    # if path.isdir(models_dir):
         # shutil recursively removes files and directories residing in given path
-        shutil.rmtree('agModels-predictClass')
+        # shutil.rmtree('agModels-predictClass')
     for file in filelist:
         if path.isfile(file):
             os.remove(file)
@@ -202,6 +215,33 @@ def calculate_bias():
         {'MeanDifference': mean_diff, 'DisparateImpact': disparate_impact})
     return(my_json_string)
 
+# calculate permutations
+@app.route('/generate/continuous', methods=['POST'])
+def calculate_permutation():
+    # get json input
+    req = request.get_json
+    label = req.get('label')
+    # this should be in the form of a dict from frontend of the default row generated earlier
+    default_row = req.get('default')
+    # make sure its in the form of a dict 
+    default_row = ast.literal_eval(default_row)
+    # get all permutations of protected attributes
+    all_permutations = list(itertools.product(*protected_atrributes))
 
+    output = pd.DataFrame()
+    for permutation in all_permutations:
+        default_row['sex'] = permutation[0]
+        default_row['age_cat'] = permutation[1]
+        default_row['race'] = permutation[2]
+        output = output.append(default_row, ignore_index=True)
+    # Now predict the y column
+    predictor = TabularPredictor.load(models_dir)
+    y_pred = predictor.predict(output)  
+    # append predictions
+    output[label] = y_pred
+
+    return(output.to_json(orient = "records"))
+
+    
 if (__name__ == "__main__"):
     app.run(host='0.0.0.0', port=105)
