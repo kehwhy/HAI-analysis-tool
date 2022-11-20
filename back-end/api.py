@@ -15,6 +15,7 @@ from aif360.metrics import BinaryLabelDatasetMetric
 from sklearn.preprocessing import OrdinalEncoder
 import ast
 import itertools
+from itertools import permutations
 
 app = Flask(__name__)
 
@@ -26,14 +27,14 @@ compas_catagorical_feature_list = [
     "sex", "age_cat", "race", "c_days_from_compas", "c_charge_degree", "c_charge_desc"]
 
 # Have to put these here for now
-pocessed_data_full = {'Male': 1, 'Female': 0, 'age_cat_greater_than_45': 1,
-                 'age_cat_25_to_45': 0, 'age_cat_less_than_45': 2, 'African-American': 0, 'Asian': 1,
+processed_data_full = {'Male': 1, 'Female': 0, 'age_cat_greater_than_45': 1,
+                 'age_cat_25_to_45': 0, 'age_cat_less_than_25': 2, 'African-American': 0, 'Asian': 1,
                  'Caucasion': 2, 'Hispanic': 3, 'Native-American': 4, 'Other': 5}
 
 # split them up so we can return the correct list of values to frontend
-pocessed_data_sex = {'Male': 1, 'Female': 0}
+processed_data_sex = {'Male': 1, 'Female': 0}
 processed_data_age_cat = {'age_cat_greater_than_45': 1,
-                          'age_cat_25_to_45': 0, 'age_cat_less_than_45': 2}
+                          'age_cat_25_to_45': 0, 'age_cat_less_than_25': 2}
 processed_data_race = {'African-American': 0, 'Asian': 1,
                        'Caucasion': 2, 'Hispanic': 3, 'Native American': 4, 'Other': 5}
 
@@ -144,7 +145,7 @@ def get_protected_attribute_values():
     protected_attr = req.get('protected')
     if protected_attr is 'sex':
         json = json.dumps(
-        {'Values': pocessed_data_sex})
+        {'Values': processed_data_sex})
         return(json)
     if protected_attr is 'age_cat':
         json = json.dumps(
@@ -185,8 +186,8 @@ def calculate_bias():
     if not path.isfile(filelist[4]):
         df = pd.read_csv(filelist[2])
         # 0 is desirable, 1 is not desirable
-        df[label].mask(df[label] <= 4, 0, inplace=True)
-        df[label].mask(df[label] >= 5, 1, inplace=True)
+        df[label].mask(df[label] == 0, 0, inplace=True)
+        df[label].mask(df[label] >= 2, 1, inplace=True)
         df.fillna(0)
         # process catagorial data into numerical data
         oe = OrdinalEncoder()
@@ -195,6 +196,8 @@ def calculate_bias():
         # save it
         df.to_csv(filelist[4], encoding='utf-8', index=False)
 
+    # Read OE encoded dataset to use for standard dataset
+    df = pd.read_csv(filelist[4])
     # now that we have the binary encoding for scores we can calculate bias metrics
     dataset = StandardDataset(df,
                               label_name=label,
@@ -202,10 +205,10 @@ def calculate_bias():
                               favorable_classes=[0],
                               protected_attribute_names=[protected_attr],
                               # for priveleged class we will use our dict
-                              privileged_classes=[[pocessed_data_full.get(priveledged)]])
+                              privileged_classes=[[processed_data_full.get(priveledged)]])
     # Again using our dict
-    privileged_groups = [{protected_attr: pocessed_data_full.get(priveledged)}]
-    unprivileged_groups = [{protected_attr: pocessed_data_full.get(unpriveledged)}]
+    privileged_groups = [{protected_attr: processed_data_full.get(priveledged)}]
+    unprivileged_groups = [{protected_attr: processed_data_full.get(unpriveledged)}]
     metric_orig_train = BinaryLabelDatasetMetric(dataset,
                                                  unprivileged_groups=unprivileged_groups,
                                                  privileged_groups=privileged_groups)
@@ -242,6 +245,197 @@ def calculate_permutation():
 
     return(output.to_json(orient = "records"))
 
+# calculate proactive
+@app.route('/generate/proactive', methods=['POST'])
+def calculate_proactive():
+    # get json input
+    req = request.get_json
+    label = req.get('label')
+
+    # protected attributes who are the most unpriveledged overall
+    total_dict_unpriveledged_mean = {}
+    # protected attributes who have the highest benefit overall
+    total_dict_higher_benefit = {}
+
+    # Only create this processed data once
+    if not path.isfile(filelist[4]):
+        df = pd.read_csv(filelist[2])
+        # 0 is desirable, 1 is not desirable
+        df[label].mask(df[label] == 0, 0, inplace=True)
+        df[label].mask(df[label] >= 2, 1, inplace=True)
+        df.fillna(0)
+        # process catagorial data into numerical data
+        oe = OrdinalEncoder()
+        df[compas_catagorical_feature_list] = oe.fit_transform(
+            df[[compas_catagorical_feature_list]])
+        # save it
+        df.to_csv(filelist[4], encoding='utf-8', index=False)
     
+    # Read OE encoded dataset to use for standard dataset
+    df = pd.read_csv(filelist[4])
+
+    # FIRST WE DO SEX
+    dataset = StandardDataset(df,
+                            label_name=label,
+                            # 0 represents low recidivism score
+                            favorable_classes=[0],
+                            protected_attribute_names=['sex'],
+                            # for priveleged class we will use our dict
+                            privileged_classes=[[0]]) # Female
+    # Again using our dict
+    privileged_groups = [{'sex': 0}] # Female
+    unprivileged_groups = [{'sex': 1}] # Male
+    metric_orig_train = BinaryLabelDatasetMetric(dataset,
+                                                    unprivileged_groups=unprivileged_groups,
+                                                    privileged_groups=privileged_groups)
+    # A negative value indicates less favorable outcomes for the unprivileged groups.
+    mean_diff = metric_orig_train.mean_difference()
+    # The ideal value of this metric is 1.0 A value < 1 implies higher benefit for the privileged group and a 
+    # value >1 implies a higher benefit for the unprivileged group.
+    disparate_impact = metric_orig_train.disparate_impact()
+    if mean_diff < 0:
+        sex_unpriveledged_mean = (list(processed_data_sex.keys())[list(processed_data_sex.values()).index(1)])
+        total_dict_unpriveledged_mean[sex_unpriveledged_mean] = mean_diff
+    if disparate_impact < 1:
+        higher_benefit_priveledged = (list(processed_data_sex.keys())[list(processed_data_sex.values()).index(0)])
+        total_dict_higher_benefit[higher_benefit_priveledged] = disparate_impact
+
+    # !
+    # NEXT WE DO AGE CATEGORY
+
+    # These are all possible ordered pairs of age_cat
+    permutations_age_cat = list( permutations( range( 3 ), 2 ) )
+    # These 2 values are used while going through all combinations
+    lowest_mean_diff = 0
+    lowest_disparate_impact = 1 
+
+    # These will be used to count the occurrences since we go through all combos
+    # (might be fun to see in front end)
+    mean_list_unpriveledged_age = []
+    disparate_impact_list_benefit_age = []
+
+    for combination in permutations_age_cat:
+        dataset = StandardDataset(df,
+                                label_name=label,
+                                # 0 represents low recidivism score
+                                favorable_classes=[0],
+                                protected_attribute_names=['age_cat'],
+                                # for priveleged class we will use our dict
+                                privileged_classes=[[combination[0]]])
+        # Again using our dict
+        privileged_groups = [{'age_cat': combination[0]}]
+        unprivileged_groups = [{'age_cat': combination[1]}]
+        metric_orig_train = BinaryLabelDatasetMetric(dataset,
+                                                        unprivileged_groups=unprivileged_groups,
+                                                        privileged_groups=privileged_groups)
+        
+        mean_diff = metric_orig_train.mean_difference()
+        disparate_impact = metric_orig_train.disparate_impact()
+        
+        if mean_diff < 0:
+            if mean_diff < lowest_mean_diff:
+                least_priveledged = combination[1]
+                lowest_mean_diff = mean_diff
+            age_unpriveledged = (list(processed_data_age_cat.keys())[list(processed_data_age_cat.values()).index(combination[1])])
+            mean_list_unpriveledged_age.append(age_unpriveledged)
+
+        if disparate_impact < 1:
+            if disparate_impact < lowest_disparate_impact:
+                highest_priveledged = combination[0]
+                lowest_disparate_impact = disparate_impact
+            higher_benefit_priveledged = (list(processed_data_age_cat.keys())[list(processed_data_age_cat.values()).index(combination[0])])
+            disparate_impact_list_benefit_age.append(higher_benefit_priveledged)
+
+    age_unpriveledged = (list(processed_data_age_cat.keys())[list(processed_data_age_cat.values()).index(least_priveledged)])
+    # Add to our total least priveledged list
+    total_dict_unpriveledged_mean[age_unpriveledged] = lowest_mean_diff
+
+    higher_benefit_priveledged = (list(processed_data_age_cat.keys())[list(processed_data_age_cat.values()).index(highest_priveledged)])
+    # Add to our total highest benefit list
+    total_dict_higher_benefit[higher_benefit_priveledged] = lowest_disparate_impact   
+
+    # Now we get number of occurences that each value was unpriveledged in mean_difference
+    age_list = ['age_cat_greater_than_45', 'age_cat_25_to_45', 'age_cat_less_than_25']
+    # To return
+    age_mean_least_counts = {}
+    for val in age_list:
+        c = mean_list_unpriveledged_age.count(val)
+        age_mean_least_counts[val] = c
+
+    # To return
+    age_highest_benefit_counts = {}
+    for val in age_list:
+        c = disparate_impact_list_benefit_age.count(val)
+        age_highest_benefit_counts[val] = c
+    
+    # !
+    # NOW FINALLY RACE
+
+    permutations_race = permutations_age_cat = list( permutations( range( 6 ), 2 ) )
+    # reset values
+    lowest_mean_diff = 0
+    lowest_disparate_impact = 1 
+
+    mean_list_unpriveledged_race = []
+    disparate_impact_list_benefit_race = []
+    for combination in permutations_race:
+        dataset = StandardDataset(df,
+                                label_name=label,
+                                # 0 represents low recidivism score
+                                favorable_classes=[0],
+                                protected_attribute_names=['race'],
+                                # for priveleged class we will use our dict
+                                privileged_classes=[[combination[0]]])
+        # Again using our dict
+        privileged_groups = [{'race': combination[0]}]
+        unprivileged_groups = [{'race': combination[1]}]
+        metric_orig_train = BinaryLabelDatasetMetric(dataset,
+                                                        unprivileged_groups=unprivileged_groups,
+                                                        privileged_groups=privileged_groups)
+    
+        mean_diff = metric_orig_train.mean_difference()
+        disparate_impact = metric_orig_train.disparate_impact()
+
+
+        if mean_diff < 0:
+            if mean_diff < lowest_mean_diff:
+                least_priveledged = combination[1]
+                lowest_mean_diff = mean_diff
+            race_unpriveledged = (list(processed_data_race.keys())[list(processed_data_race.values()).index(combination[1])])
+            mean_list_unpriveledged_race.append(race_unpriveledged)
+
+        if disparate_impact < 1:
+            if disparate_impact < lowest_disparate_impact:
+                highest_priveledged = combination[0]
+                lowest_disparate_impact = disparate_impact
+            higher_benefit_priveledged = (list(processed_data_race.keys())[list(processed_data_race.values()).index(combination[0])])
+            disparate_impact_list_benefit_race.append(higher_benefit_priveledged)
+
+    race_unpriveledged = (list(processed_data_race.keys())[list(processed_data_race.values()).index(least_priveledged)])
+    total_dict_unpriveledged_mean[race_unpriveledged] = lowest_mean_diff
+
+    higher_benefit_priveledged = (list(processed_data_race.keys())[list(processed_data_race.values()).index(highest_priveledged)])
+    total_dict_higher_benefit[higher_benefit_priveledged] = lowest_disparate_impact   
+
+    race_list = ['African-American', 'Asian', 'Caucasion', 'Hispanic', 'Native American', 'Other']
+    race_mean_least_counts = {}
+    for val in race_list:
+        c = mean_list_unpriveledged_race.count(val)
+        race_mean_least_counts[val] = c
+
+    # To return
+    race_highest_benefit_counts = {}
+    for val in race_list:
+        c = disparate_impact_list_benefit_race.count(val)
+        race_highest_benefit_counts[val] = c
+
+
+    my_json_string = json.dumps(
+        {'Age_Negative_Mean_Occurences': age_mean_least_counts, 'Race_Negative_Mean_Occurences': race_mean_least_counts,
+        'Age_Highest_Benefit_Occurrences': age_highest_benefit_counts, 'Race_Highest_Benefit_Occurrences': race_highest_benefit_counts,
+        'Total_Least_Priveledged_Attributes_Mean': total_dict_unpriveledged_mean, 'Total_Highest_Benefit_Disparate': total_dict_higher_benefit})
+    return(my_json_string)
+
+
 if (__name__ == "__main__"):
     app.run(host='0.0.0.0', port=105)
