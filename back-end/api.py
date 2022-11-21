@@ -27,14 +27,14 @@ compas_catagorical_feature_list = [
     "sex", "age_cat", "race", "c_days_from_compas", "c_charge_degree", "c_charge_desc"]
 
 # Have to put these here for now
-processed_data_full = {'Male': 1, 'Female': 0, 'age_cat_greater_than_45': 1,
-                 'age_cat_25_to_45': 0, 'age_cat_less_than_25': 2, 'African-American': 0, 'Asian': 1,
+processed_data_full = {'Male': 1, 'Female': 0, 'Greater than 45': 1,
+                 '25-45': 0, 'Less than 25': 2, 'African-American': 0, 'Asian': 1,
                  'Caucasion': 2, 'Hispanic': 3, 'Native-American': 4, 'Other': 5}
 
 # split them up so we can return the correct list of values to frontend
 processed_data_sex = {'Male': 1, 'Female': 0}
-processed_data_age_cat = {'age_cat_greater_than_45': 1,
-                          'age_cat_25_to_45': 0, 'age_cat_less_than_25': 2}
+processed_data_age_cat = {'Greater than 45': 1,
+                          '25-45': 0, 'Less than 25': 2}
 processed_data_race = {'African-American': 0, 'Asian': 1,
                        'Caucasion': 2, 'Hispanic': 3, 'Native American': 4, 'Other': 5}
 
@@ -355,7 +355,7 @@ def calculate_proactive():
     total_dict_higher_benefit[higher_benefit_priveledged] = lowest_disparate_impact   
 
     # Now we get number of occurences that each value was unpriveledged in mean_difference
-    age_list = ['age_cat_greater_than_45', 'age_cat_25_to_45', 'age_cat_less_than_25']
+    age_list = ['Greater than 45', '25-45', 'Less than 25']
     # To return
     age_mean_least_counts = {}
     for val in age_list:
