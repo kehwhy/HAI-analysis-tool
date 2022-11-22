@@ -18,6 +18,7 @@ const Home = () => {
     const UPLOAD_URL = 'http://127.0.0.1:105/generate/model'
     const DEFAULT_VALUES_URL = 'http://127.0.0.1:105/generate/default'
     const PROTECTED_VALUES_URL = 'http://127.0.0.1:105/protected'
+    const CONTINUOUS_VALUES_URL = 'http://127.0.0.1:105/generate/continuous'
 
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -74,6 +75,16 @@ const Home = () => {
             });
 
         axios.post(PROTECTED_VALUES_URL, "")
+        .then((res) => {
+            console.log(res)
+            dispatch(setProtectedFeatures(res.data))
+            navigate('/tool')
+        })
+        .catch((err) => {
+            console.log(error)
+        });
+
+        axios.post(CONTINUOUS_VALUES_URL, "")
         .then((res) => {
             console.log(res)
             dispatch(setProtectedFeatures(res.data))

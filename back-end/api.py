@@ -216,10 +216,10 @@ def calculate_bias():
 @app.route('/generate/continuous', methods=['POST'])
 def calculate_permutation():
     # get json input
-    req = request.get_json
-    label = req.get('label')
+    req = request.json
+    label = req['label']
     # this should be in the form of a dict from frontend of the default row generated earlier
-    default_row = req.get('default')
+    default_row = req['default']
     # make sure its in the form of a dict 
     default_row = ast.literal_eval(default_row)
     # get all permutations of protected attributes
