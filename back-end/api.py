@@ -116,7 +116,7 @@ def get_default_data_score():
     df = pd.read_csv(filelist[3])
     # select a single row from test csv predictions
     df = df.sample()
-    return(df.to_json(orient="default"))
+    return(df.to_json(orient="records"))
 
 
 # get protected features on loading interactive page
@@ -132,54 +132,48 @@ def get_protected_attributes():
         for prot in protected_attributes:
             if prot in attr:
                 present_protected_attributes.append(attr)
-    my_json_string = json.dumps(
-        {'Protected': present_protected_attributes})
+    final_obj = {}
+    for att in present_protected_attributes:
+        final_obj[att] = get_protected_attribute_values(att)
+    my_json_string = json.dumps(final_obj)
     return(my_json_string)
 
-# get protected attributes on loading interactive page
-@app.route('/protected/values', methods=['POST'])
-def get_protected_attribute_values():
-    # get json input of protected attribute
-    req = request.get_json
-    # get the feature
-    protected_attr = req.get('protected')
-    if protected_attr is 'sex':
-        json = json.dumps(
-        {'Values': processed_data_sex})
-        return(json)
-    if protected_attr is 'age_cat':
-        json = json.dumps(
-        {'Values': processed_data_age_cat})
-        return(json)
-    if protected_attr is 'race':
-        json = json.dumps(
-        {'Values': processed_data_race})
-        return(json)
+# get protected attributes helper function
+def get_protected_attribute_values(protected_attr):
+    if protected_attr == 'sex':
+        return processed_data_sex
+    if protected_attr == 'age_cat':
+        return processed_data_age_cat
+    if protected_attr == 'race':
+        return processed_data_race
+    else: 
+        return {}
 
 
 # When a user puts in their own values a clicks 'Calculate Score'
 @app.route('/generate/calculate_score', methods=['POST'])
 def calculate_user_data_score():
     # get json input of features
-    req = request.get_json
-    df = pd.read_json(req)
+    req = request.json
+    my_json_string = json.dumps(req)
+    df = pd.read_json(my_json_string)
     predictor = TabularPredictor.load(models_dir)
     y_pred = predictor.predict(df)
-    return(y_pred.to_json(orient="prediction"))
+    return(y_pred.to_json(orient="records"))
 
 
 # calculate bias metrics
 @app.route('/generate/bias', methods=['POST'])
 def calculate_bias():
     # get json input of features
-    req = request.get_json
+    req = request.json
 
     # We need the potected attribute and the label
-    protected_attr = req.get('protected')
-    label = req.get('label')
+    protected_attr = req['protected']
+    label = req['label']
     # We also need the attribute values they want to compare, rely on frontend to match the correct dict
-    priveledged = req.get('priveledged')
-    unpriveledged = req.get('unpriveledged')
+    priveledged = req['privileged']
+    unpriveledged = req['unprivileged']
     
 
     # Only create this processed data once
@@ -192,7 +186,7 @@ def calculate_bias():
         # process catagorial data into numerical data
         oe = OrdinalEncoder()
         df[compas_catagorical_feature_list] = oe.fit_transform(
-            df[[compas_catagorical_feature_list]])
+            df[compas_catagorical_feature_list])
         # save it
         df.to_csv(filelist[4], encoding='utf-8', index=False)
 

@@ -7,17 +7,24 @@ import SendIcon from "@mui/icons-material/Send";
 import SyncIcon from '@mui/icons-material/Sync';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
 import BuildIcon from '@mui/icons-material/Build';
+import { useDispatch } from "react-redux";
+import { setFeatures, setModelInfo, setProtectedFeatureNames, setProtectedFeatures, setRecidivismScore } from "../../features/model/modelSlice";
 
 const FormData = require('form-data');
 
 
 const Home = () => {
     
-    const UPLOAD_URL = ""
+    const UPLOAD_URL = 'http://127.0.0.1:105/generate/model'
+    const DEFAULT_VALUES_URL = 'http://127.0.0.1:105/generate/default'
+    const PROTECTED_VALUES_URL = 'http://127.0.0.1:105/protected'
+
     const navigate = useNavigate();
+    const dispatch = useDispatch();
 
     const [isModalOpen, setModelOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [ready, setReady] = useState(false)
     const [error, setError] = useState("")
     const [selectedFile, setSelectedFile] = useState(null);
     const [label, setLabel] = useState("");
@@ -32,7 +39,6 @@ const Home = () => {
 
     const submitForm = () => {
         setLoading(true)
-        //setTimeout(() => setLoading(false), 5000);
 
         const formData = new FormData();
         formData.append("label", label);
@@ -40,15 +46,45 @@ const Home = () => {
       
         axios.post(UPLOAD_URL, formData)
           .then((res) => {
+            console.log(res)
             setError("")
-            navigate('/tool')
+            setLoading(false)
+            dispatch(setModelInfo({...res.data, "label": label}))
+            setReady(true)
+
           })
           .catch((err) => {
             setError("There was a problem uploading the file.")
-            navigate('/tool')
+            console.log(err)
+            setLoading(false)
           });
-        setLoading(false)
+        
     };
+
+    const onInteractiveToolButtonClick = () => {
+        axios.post(DEFAULT_VALUES_URL, "")
+            .then((res) => {
+                console.log(res)
+                dispatch(setFeatures(res.data[0]))
+                dispatch(setRecidivismScore(res.data[0][label]))
+                
+            })
+            .catch((err) => {
+                console.log(error)
+            });
+
+        axios.post(PROTECTED_VALUES_URL, "")
+        .then((res) => {
+            console.log(res)
+            dispatch(setProtectedFeatures(res.data))
+            navigate('/tool')
+        })
+        .catch((err) => {
+            console.log(error)
+        });
+
+        
+    }
 
     const onChangeFileInput = (e) => {
         setSelectedFile(e.target.files[0])
@@ -68,7 +104,7 @@ const Home = () => {
             aria-describedby="modal-modal-description"
             >
                 <Box sx = {{ diplay: 'flex', margin:'auto', maxWidth:0.5, maxHeight:0.5, borderRadius:'5px'}}>
-                    { loading ? <CircularProgress></CircularProgress> :
+                    { ready ? <Button onClick={onInteractiveToolButtonClick} variant='contained' endIcon={<SendIcon/>}>Go to interactive tool.</Button> : loading ? <CircularProgress></CircularProgress> :
                     <Box sx = {{ backgroundColor:'white', display:'block', margin:'auto', padding:2}} >
                     <Typography sx={{padding:1, paddingLeft:2}} variant="h5">Upload your CSV file</Typography>
                     <form method="POST" action="" encType="multipart/form-data">
