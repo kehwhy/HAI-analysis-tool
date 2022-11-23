@@ -71,7 +71,7 @@ const Home = () => {
                 
             })
             .catch((err) => {
-                console.log(error)
+                console.log(err)
             });
 
         axios.post(PROTECTED_VALUES_URL, "")
@@ -81,7 +81,7 @@ const Home = () => {
             navigate('/tool')
         })
         .catch((err) => {
-            console.log(error)
+            console.log(err)
         });
 
         axios.post(CONTINUOUS_VALUES_URL, "")
@@ -91,7 +91,7 @@ const Home = () => {
             navigate('/tool')
         })
         .catch((err) => {
-            console.log(error)
+            console.log(err)
         });
 
         
