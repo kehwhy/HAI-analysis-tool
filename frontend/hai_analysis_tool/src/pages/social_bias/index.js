@@ -11,51 +11,44 @@ export const IntermittentSocialBias = () => {
 
     const [biasInfo, setBiasInfo] = useState({})
     const [showBiasInfo, setShowBiasInfo] = useState(false)
-    
-
-    const explanations = {
-        DisparateImpact: "DisparateImpact explanation!",
-        MeanDifference: "MeanDifference explanation!"
-    }
+    const [currFeature, setCurrFeature] = useState("")
 
     return (
         <Box sx={{display:'grid', gridTemplateRows: '1fr 1fr 1fr 1fr', gridTemplateColumns: '1fr 1fr 1fr 1fr'}}>
             <FeatureList/>
-            <ProtectedFeatures setBiasInfo={setBiasInfo} setShowBiasInfo={setShowBiasInfo} />
-            <RecidivismScore/>
-            <Box hidden={!showBiasInfo} sx={{display:'block', textAlign:'center', gridRow:2, gridColumn:3, margin:3}}>
-                <Typography variant='h4'>Bias information</Typography>
-                {Object.keys(biasInfo).map((key)=> {
-                    return (
-                        <Box sx={{margin:2}}>
-                            <Typography sx={{display:'inline', margin:'auto'}} variant="h5">{key}</Typography>
-                            <MouseOverPopover text={explanations[key]}/>
-                            <Typography sx={{display:'inline'}} variant="h6">{biasInfo[key]}</Typography>
-                            
-                        </Box>
-                    )
-                })}
-
-            </Box>
+            <ProtectedFeatures setBiasInfo={setBiasInfo} setShowBiasInfo={setShowBiasInfo} setCurrFeature={setCurrFeature}/>
+            <RecidivismScore biasInfo={biasInfo} showBiasInfo={showBiasInfo} currFeature={currFeature}/>
         </Box>
     )
 }
 
 export const ContinuousSocialBias = () => {
+
+    const [biasInfo, setBiasInfo] = useState({})
+    const [showBiasInfo, setShowBiasInfo] = useState(false)
+    const [currFeature, setCurrFeature] = useState("")
+    
+
     return (
         <Box sx={{display:'grid', gridTemplateRows: '1fr 1fr 1fr 1fr', gridTemplateColumns: '1fr 1fr 1fr 1fr'}}>
             <FeatureList/>
-            <ProtectedSliderList/>
-            <RecidivismScore/>
+            <ProtectedSliderList setCurrFeature={setCurrFeature} setBiasInfo={setBiasInfo} setShowBiasInfo={setShowBiasInfo}/>
+            <RecidivismScore biasInfo={biasInfo} showBiasInfo={showBiasInfo} currFeature={currFeature}/>
+
         </Box>
     )
 }
 
 export const ProactiveSocialBias = () => {
+
+    const [biasInfo, setBiasInfo] = useState({})
+    const [showBiasInfo, setShowBiasInfo] = useState(false)
+    const [currFeature, setCurrFeature] = useState("")
+
     return (
         <Box sx={{display:'grid', gridTemplateRows: '1fr 1fr 1fr 1fr', gridTemplateColumns: '1fr 1fr 1fr 1fr'}}>
             <FeatureList/>
-            <RecidivismScore/>
+            <RecidivismScore biasInfo={biasInfo} showBiasInfo={showBiasInfo} currFeature={currFeature}/>
         </Box>
     )
 }

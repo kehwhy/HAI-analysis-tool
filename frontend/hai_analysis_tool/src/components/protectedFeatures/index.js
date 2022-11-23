@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useSelector } from "react-redux"
 
 
-const ProtectedFeatures = ({setBiasInfo, setShowBiasInfo}) => {
+const ProtectedFeatures = ({setBiasInfo, setShowBiasInfo, setCurrFeature}) => {
 
     const BIAS_URL = 'http://127.0.0.1:105/generate/bias'
 
@@ -27,6 +27,8 @@ const ProtectedFeatures = ({setBiasInfo, setShowBiasInfo}) => {
     })    
 
     const onCalculateBiasMetrics = (featureName) => {
+
+        setCurrFeature(featureName)
 
         const request = {
             protected: featureName,
