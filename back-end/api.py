@@ -20,7 +20,7 @@ from itertools import permutations
 app = Flask(__name__)
 
 filelist = ['workfile.csv', 'workfile_train.csv',
-            'workfile_test.csv', 'workfile_test_predictions.csv', 'workfile_train_processed']
+            'workfile_test.csv', 'workfile_test_predictions.csv', 'workfile_train_processed.csv']
 models_dir = 'agModels-predictClass'
 protected_attributes = ['age_cat', 'sex', 'race']
 compas_catagorical_feature_list = [
@@ -29,7 +29,11 @@ compas_catagorical_feature_list = [
 # Have to put these here for now
 processed_data_full = {'Male': 1, 'Female': 0, 'Greater than 45': 1,
                  '25-45': 0, 'Less than 25': 2, 'African-American': 0, 'Asian': 1,
-                 'Caucasion': 2, 'Hispanic': 3, 'Native-American': 4, 'Other': 5}
+                 'Caucasion': 2, 'Hispanic': 3, 'Native American': 4, 'Other': 5}
+
+all_processed_data = {'sex': {'Male': 1, 'Female': 0}, 'age_cat': {'age_cat_greater_than_45': 1,
+                          'age_cat_25_to_45': 0, 'age_cat_less_than_25': 2}, 'race': {'African-American': 0, 'Asian': 1,
+                       'Caucasion': 2, 'Hispanic': 3, 'Native American': 4, 'Other': 5}}
 
 # split them up so we can return the correct list of values to frontend
 processed_data_sex = {'Male': 1, 'Female': 0}
@@ -246,11 +250,6 @@ def calculate_proactive():
     req = request.get_json
     label = req.get('label')
 
-    # protected attributes who are the most unpriveledged overall
-    total_dict_unpriveledged_mean = {}
-    # protected attributes who have the highest benefit overall
-    total_dict_higher_benefit = {}
-
     # Only create this processed data once
     if not path.isfile(filelist[4]):
         df = pd.read_csv(filelist[2])
@@ -268,166 +267,51 @@ def calculate_proactive():
     # Read OE encoded dataset to use for standard dataset
     df = pd.read_csv(filelist[4])
 
-    # FIRST WE DO SEX
-    dataset = StandardDataset(df,
-                            label_name=label,
-                            # 0 represents low recidivism score
-                            favorable_classes=[0],
-                            protected_attribute_names=['sex'],
-                            # for priveleged class we will use our dict
-                            privileged_classes=[[0]]) # Female
-    # Again using our dict
-    privileged_groups = [{'sex': 0}] # Female
-    unprivileged_groups = [{'sex': 1}] # Male
-    metric_orig_train = BinaryLabelDatasetMetric(dataset,
-                                                    unprivileged_groups=unprivileged_groups,
-                                                    privileged_groups=privileged_groups)
-    # A negative value indicates less favorable outcomes for the unprivileged groups.
-    mean_diff = metric_orig_train.mean_difference()
-    # The ideal value of this metric is 1.0 A value < 1 implies higher benefit for the privileged group and a 
-    # value >1 implies a higher benefit for the unprivileged group.
-    disparate_impact = metric_orig_train.disparate_impact()
-    if mean_diff < 0:
-        sex_unpriveledged_mean = (list(processed_data_sex.keys())[list(processed_data_sex.values()).index(1)])
-        total_dict_unpriveledged_mean[sex_unpriveledged_mean] = mean_diff
-    if disparate_impact < 1:
-        higher_benefit_priveledged = (list(processed_data_sex.keys())[list(processed_data_sex.values()).index(0)])
-        total_dict_higher_benefit[higher_benefit_priveledged] = disparate_impact
-
-    # !
-    # NEXT WE DO AGE CATEGORY
-
-    # These are all possible ordered pairs of age_cat
-    permutations_age_cat = list( permutations( range( 3 ), 2 ) )
-    # These 2 values are used while going through all combinations
-    lowest_mean_diff = 0
-    lowest_disparate_impact = 1 
-
-    # These will be used to count the occurrences since we go through all combos
-    # (might be fun to see in front end)
-    mean_list_unpriveledged_age = []
-    disparate_impact_list_benefit_age = []
-
-    for combination in permutations_age_cat:
-        dataset = StandardDataset(df,
+    total_results_mean_difference = {}
+    total_results_disparate_impact = {}
+    for attribute in all_processed_data:
+        groups = all_processed_data.get(attribute)
+        number_of_groups = len(groups)
+        permutations_group = list( permutations( range( number_of_groups ), 2 ) )
+        results_mean = {}
+        results_disparate = {}
+        for combination in permutations_group:
+            dataset = StandardDataset(df,
                                 label_name=label,
                                 # 0 represents low recidivism score
                                 favorable_classes=[0],
-                                protected_attribute_names=['age_cat'],
+                                protected_attribute_names=[attribute],
                                 # for priveleged class we will use our dict
                                 privileged_classes=[[combination[0]]])
-        # Again using our dict
-        privileged_groups = [{'age_cat': combination[0]}]
-        unprivileged_groups = [{'age_cat': combination[1]}]
-        metric_orig_train = BinaryLabelDatasetMetric(dataset,
-                                                        unprivileged_groups=unprivileged_groups,
-                                                        privileged_groups=privileged_groups)
-        
-        mean_diff = metric_orig_train.mean_difference()
-        disparate_impact = metric_orig_train.disparate_impact()
-        
-        if mean_diff < 0:
-            if mean_diff < lowest_mean_diff:
-                least_priveledged = combination[1]
-                lowest_mean_diff = mean_diff
-            age_unpriveledged = (list(processed_data_age_cat.keys())[list(processed_data_age_cat.values()).index(combination[1])])
-            mean_list_unpriveledged_age.append(age_unpriveledged)
+            # Again using our dict
+            privileged_groups = [{attribute: combination[0]}]
+            unprivileged_groups = [{attribute: combination[1]}]
+            metric_orig_train = BinaryLabelDatasetMetric(dataset,
+                                                            unprivileged_groups=unprivileged_groups,
+                                                            privileged_groups=privileged_groups)
 
-        if disparate_impact < 1:
-            if disparate_impact < lowest_disparate_impact:
-                highest_priveledged = combination[0]
-                lowest_disparate_impact = disparate_impact
-            higher_benefit_priveledged = (list(processed_data_age_cat.keys())[list(processed_data_age_cat.values()).index(combination[0])])
-            disparate_impact_list_benefit_age.append(higher_benefit_priveledged)
+            # A negative value indicates less favorable outcomes for the unprivileged groups.
+            mean_diff = metric_orig_train.mean_difference()
 
-    age_unpriveledged = (list(processed_data_age_cat.keys())[list(processed_data_age_cat.values()).index(least_priveledged)])
-    # Add to our total least priveledged list
-    total_dict_unpriveledged_mean[age_unpriveledged] = lowest_mean_diff
+            # The ideal value of disparate impact is 1.0 A value < 1 implies higher benefit for the privileged group and a 
+            # value >1 implies a higher benefit for the unprivileged group.
+            disparate_impact = metric_orig_train.disparate_impact()
+            
+            # Now we formulate the results
+            # Get the groups names
+            privileged_group = (list(groups.keys())[list(groups.values()).index(combination[0])])
+            unprivileged_group = (list(groups.keys())[list(groups.values()).index(combination[1])])
 
-    higher_benefit_priveledged = (list(processed_data_age_cat.keys())[list(processed_data_age_cat.values()).index(highest_priveledged)])
-    # Add to our total highest benefit list
-    total_dict_higher_benefit[higher_benefit_priveledged] = lowest_disparate_impact   
-
-    # Now we get number of occurences that each value was unpriveledged in mean_difference
-    age_list = ['Greater than 45', '25-45', 'Less than 25']
-    # To return
-    age_mean_least_counts = {}
-    for val in age_list:
-        c = mean_list_unpriveledged_age.count(val)
-        age_mean_least_counts[val] = c
-
-    # To return
-    age_highest_benefit_counts = {}
-    for val in age_list:
-        c = disparate_impact_list_benefit_age.count(val)
-        age_highest_benefit_counts[val] = c
-    
-    # !
-    # NOW FINALLY RACE
-
-    permutations_race = permutations_age_cat = list( permutations( range( 6 ), 2 ) )
-    # reset values
-    lowest_mean_diff = 0
-    lowest_disparate_impact = 1 
-
-    mean_list_unpriveledged_race = []
-    disparate_impact_list_benefit_race = []
-    for combination in permutations_race:
-        dataset = StandardDataset(df,
-                                label_name=label,
-                                # 0 represents low recidivism score
-                                favorable_classes=[0],
-                                protected_attribute_names=['race'],
-                                # for priveleged class we will use our dict
-                                privileged_classes=[[combination[0]]])
-        # Again using our dict
-        privileged_groups = [{'race': combination[0]}]
-        unprivileged_groups = [{'race': combination[1]}]
-        metric_orig_train = BinaryLabelDatasetMetric(dataset,
-                                                        unprivileged_groups=unprivileged_groups,
-                                                        privileged_groups=privileged_groups)
-    
-        mean_diff = metric_orig_train.mean_difference()
-        disparate_impact = metric_orig_train.disparate_impact()
-
-
-        if mean_diff < 0:
-            if mean_diff < lowest_mean_diff:
-                least_priveledged = combination[1]
-                lowest_mean_diff = mean_diff
-            race_unpriveledged = (list(processed_data_race.keys())[list(processed_data_race.values()).index(combination[1])])
-            mean_list_unpriveledged_race.append(race_unpriveledged)
-
-        if disparate_impact < 1:
-            if disparate_impact < lowest_disparate_impact:
-                highest_priveledged = combination[0]
-                lowest_disparate_impact = disparate_impact
-            higher_benefit_priveledged = (list(processed_data_race.keys())[list(processed_data_race.values()).index(combination[0])])
-            disparate_impact_list_benefit_race.append(higher_benefit_priveledged)
-
-    race_unpriveledged = (list(processed_data_race.keys())[list(processed_data_race.values()).index(least_priveledged)])
-    total_dict_unpriveledged_mean[race_unpriveledged] = lowest_mean_diff
-
-    higher_benefit_priveledged = (list(processed_data_race.keys())[list(processed_data_race.values()).index(highest_priveledged)])
-    total_dict_higher_benefit[higher_benefit_priveledged] = lowest_disparate_impact   
-
-    race_list = ['African-American', 'Asian', 'Caucasion', 'Hispanic', 'Native American', 'Other']
-    race_mean_least_counts = {}
-    for val in race_list:
-        c = mean_list_unpriveledged_race.count(val)
-        race_mean_least_counts[val] = c
-
-    # To return
-    race_highest_benefit_counts = {}
-    for val in race_list:
-        c = disparate_impact_list_benefit_race.count(val)
-        race_highest_benefit_counts[val] = c
-
+            comparison = {'privileged': privileged_group, 'unprivileged': unprivileged_group}
+            results_mean[mean_diff] = comparison
+            results_disparate[disparate_impact] = comparison
+        # Now connect the results to the attribute 
+        # example {'sex': {-0.047: {'privileged': 'Female', 'unpivileged': 'Male'}, 0.047: {'privileged': 'Male', 'unpivileged': 'Female'}}
+        total_results_mean_difference[attribute] = results_mean
+        total_results_disparate_impact[attribute] = results_disparate
 
     my_json_string = json.dumps(
-        {'Age_Negative_Mean_Occurences': age_mean_least_counts, 'Race_Negative_Mean_Occurences': race_mean_least_counts,
-        'Age_Highest_Benefit_Occurrences': age_highest_benefit_counts, 'Race_Highest_Benefit_Occurrences': race_highest_benefit_counts,
-        'Total_Least_Priveledged_Attributes_Mean': total_dict_unpriveledged_mean, 'Total_Highest_Benefit_Disparate': total_dict_higher_benefit})
+        {'Mean Difference': total_results_mean_difference, 'Disparate Impact': total_results_disparate_impact})
     return(my_json_string)
 
 
