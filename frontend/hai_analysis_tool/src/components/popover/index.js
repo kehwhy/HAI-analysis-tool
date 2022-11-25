@@ -19,7 +19,7 @@ export default function MouseOverPopover({text}) {
   const open = Boolean(anchorEl);
 
   return (
-    <Box sx={{display:'inline', margin: 1}}>
+    <Box sx={{display:'inline', maxWidth:0.25, margin: 1}}>
         <HelpIcon
               
         aria-owns={open ? 'mouse-over-popover' : undefined}

@@ -6,27 +6,12 @@ import { ContinuousSocialBias, IntermittentSocialBias, ProactiveSocialBias } fro
 
 const Tool = () => {
 
-    const [isPage, setPage] = useState(false)
+    // const [isPage, setPage] = useState(false)
     
     return (
         <Box sx={{ paddingTop:"80px", paddingLeft:2 }}>
             <ToolPage 
-            title={"Error Analysis"}
-            onClick={() => setPage(!isPage)}
-            hidden={isPage}
-            buttonTitle={"Social Bias"}
-            pages={{
-                intermittentPage: <IntermittentErrorAnalysis></IntermittentErrorAnalysis>,
-                continuousPage: <ContinuousErrorAnalysis></ContinuousErrorAnalysis>,
-                proactivePage: <ProactiveErrorAnalysis></ProactiveErrorAnalysis>
-
-            }}
-            />
-            <ToolPage 
             title={"Social Bias"}
-            onClick={() => setPage(!isPage)}
-            hidden={!isPage}
-            buttonTitle={"Error Analysis"}
             pages={{
                 intermittentPage: <IntermittentSocialBias></IntermittentSocialBias>,
                 continuousPage: <ContinuousSocialBias></ContinuousSocialBias>,

@@ -247,8 +247,8 @@ def calculate_permutation():
 @app.route('/generate/proactive', methods=['POST'])
 def calculate_proactive():
     # get json input
-    req = request.get_json
-    label = req.get('label')
+    req = request.json
+    label = req['label']
 
     # Only create this processed data once
     if not path.isfile(filelist[4]):

@@ -100,7 +100,7 @@ const ProtectedSliderList = ({setBiasInfo, setShowBiasInfo, setCurrFeature}) => 
                     return (
                         <Box sx={{marginTop:2}}>
                             <Typography variant='subtitle1'>{feature.name.toUpperCase()}</Typography>
-                            <Box sx={{marginTop:3}}>
+                            <Box sx={{marginTop:2}}>
                             <FormControl>
                                 <InputLabel margin="dense">Privileged Group</InputLabel>
                                 <Select value={privelegeMap[feature.name]['privileged']} onChange={(e) => onSelectChange(feature.name, e.target.value)} label="Privileged Group">
@@ -109,6 +109,9 @@ const ProtectedSliderList = ({setBiasInfo, setShowBiasInfo, setCurrFeature}) => 
                                     })}
                                 </Select>
                             </FormControl>
+                            <Box sx={{marginTop:2}}>
+                            <Typography variant='body2'>Unprivileged Group</Typography>
+                            </Box>
                             </Box>
                             <Box sx={{marginLeft:2}}>
                             <Slider

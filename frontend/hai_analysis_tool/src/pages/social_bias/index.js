@@ -2,6 +2,7 @@ import { Box,  Typography } from "@mui/material";
 import React, { useState } from "react";
 import FeatureList from "../../components/featureList";
 import MouseOverPopover from "../../components/popover";
+import ProactiveProtectedList from "../../components/proactiveProtectedList";
 import ProtectedFeatures from "../../components/protectedFeatures";
 import ProtectedSliderList from "../../components/protectedSliderList";
 import RecidivismScore from "../../components/recidivismScore";
@@ -49,6 +50,7 @@ export const ProactiveSocialBias = () => {
         <Box sx={{display:'grid', gridTemplateRows: '1fr 1fr 1fr 1fr', gridTemplateColumns: '1fr 1fr 1fr 1fr'}}>
             <FeatureList/>
             <RecidivismScore biasInfo={biasInfo} showBiasInfo={showBiasInfo} currFeature={currFeature}/>
+            <ProactiveProtectedList setCurrFeature={setCurrFeature} setBiasInfo={setBiasInfo} setShowBiasInfo={setShowBiasInfo}/>
         </Box>
     )
 }

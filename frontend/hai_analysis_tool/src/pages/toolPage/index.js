@@ -7,7 +7,7 @@ import TabSystem from "../../components/tabSystem";
 import { useSelector } from "react-redux";
 
 
-const ToolPage = ({title, onClick, hidden, buttonTitle, pages}) => {
+const ToolPage = ({title, buttonTitle, pages}) => {
 
     const modelInfo = useSelector((state) => state.model.modelInfo)
 
@@ -20,10 +20,9 @@ const ToolPage = ({title, onClick, hidden, buttonTitle, pages}) => {
 
     return (
         <ThemeProvider theme={theme}>
-            <Box hidden={hidden}> 
+            <Box> 
                 <Typography sx={{ padding:2, display:'inline' }} variant='body1'>Model type: {modelInfo.Model}</Typography>
                 <Typography sx={{ padding:2, marginLeft:25, display:'inline' }} variant='body1'>Model accuracy: {modelInfo.Evaluation.accuracy}</Typography>
-                <Button sx={{ float:'right', padding:1, marginRight:5, display:'inline'}} startIcon={<ArrowCircleRightIcon fontSize='large'/>} onClick={onClick}>{buttonTitle}</Button>
 
                 <Typography sx={{ padding:3, paddingLeft:2 }} variant='h5'>{title}</Typography>
                 

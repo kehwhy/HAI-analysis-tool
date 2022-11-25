@@ -67,7 +67,7 @@ const ProtectedFeatures = ({setBiasInfo, setShowBiasInfo, setCurrFeature}) => {
                 <Box sx={{marginBottom: 2, marginTop: 2}}>
                     <Typography variant='subtitle1' >{feature.name.toUpperCase()}</Typography>
                 </Box>
-                <Box sx={{display:'block', margin:2}}>
+                <Box sx={{display:'block', marginTop:2}}>
                     <FormControl>
                         <InputLabel margin="dense">Privileged Group</InputLabel>
                         <Select value={privelegeMap[feature.name]['privileged']} onChange={(e) => onSelectChange(feature.name, 'privileged', e.target.value)} label="Privileged Group">
@@ -77,7 +77,7 @@ const ProtectedFeatures = ({setBiasInfo, setShowBiasInfo, setCurrFeature}) => {
                         </Select>
                     </FormControl>
                 </Box>
-                <Box sx={{display:'block', margin:2}}>
+                <Box sx={{display:'block', marginTop:2}}>
                     <FormControl>
                         <InputLabel margin="dense">Unprivileged Group</InputLabel>
                         <Select value={privelegeMap[feature.name]['unprivileged']} onChange={(e) => onSelectChange(feature.name, 'unprivileged', e.target.value)}>

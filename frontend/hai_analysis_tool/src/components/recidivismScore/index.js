@@ -10,8 +10,8 @@ const RecidivismScore = ({showBiasInfo, currFeature, biasInfo}) => {
     const score = useSelector((state) => state.model.recidivismScore)
 
     const explanations = {
-        DisparateImpact: "DisparateImpact explanation!",
-        MeanDifference: "MeanDifference explanation!"
+        DisparateImpact: "The ratio of positive outcomes in the unprivileged group divided by the ratio of positive outcomes in the privileged group.\nThe ideal value of disparate impact is 1.0. A value less than 1 implies a higher benefit for the privileged group and a value greater than 1 implies a higher benefit for the unprivileged group.",
+        MeanDifference: "The difference in the rate of favorable outcomes received by the unprivileged group to the privileged group.\nA negative value indicates less favorable outcomes for the unprivileged groups."
     }
 
     return (

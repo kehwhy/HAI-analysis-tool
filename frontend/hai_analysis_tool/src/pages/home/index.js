@@ -8,7 +8,7 @@ import SyncIcon from '@mui/icons-material/Sync';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
 import BuildIcon from '@mui/icons-material/Build';
 import { useDispatch } from "react-redux";
-import { setFeatures, setModelInfo, setProtectedFeatureNames, setProtectedFeatures, setRecidivismScore } from "../../features/model/modelSlice";
+import { setFeatures, setModelInfo, setPrivilegeMap, setProtectedFeatureNames, setProtectedFeatures, setRecidivismScore } from "../../features/model/modelSlice";
 
 const FormData = require('form-data');
 
@@ -87,6 +87,7 @@ const Home = () => {
         axios.post(PROACTIVE_VALUES_URL, {"label": label})
         .then((res) => {
             console.log(res)
+            dispatch(setPrivilegeMap(res.data))
             navigate('/tool')
         })
         .catch((err) => {
@@ -131,7 +132,7 @@ const Home = () => {
                 sx={{
                     display: 'flex',
                     width:'100%',
-                    marginTop: '125px',
+                    marginTop: '100px',
                     marginBottom: '50px',
                     flexWrap: 'wrap',
                 }}
@@ -208,7 +209,7 @@ const Home = () => {
                     margin: 1
                 }}
                 ><SwapVertIcon></SwapVertIcon></Box>
-                <Typography variant='p1'>Reveal an explanation for the prediction on command if your users require more information.</Typography>
+                <Typography variant='p1'> An intermittent interaction model describes when the user initiates the interaction with the AI, and the AI responds to the user's request. </Typography>
             </Box>
             <Box
             sx = {{
@@ -223,7 +224,7 @@ const Home = () => {
                     margin: 1
                 }}
                 ><SyncIcon></SyncIcon></Box>
-                <Typography variant='p1'>Reveal an explanation for the prediction on command if your users require more information.</Typography>
+                <Typography variant='p1'>A continuous interaction relies on the AI to continuously interact with the user, providing immediate feedback or support as the input data changes.</Typography>
             </Box>
             <Box
             sx = {{
@@ -238,7 +239,7 @@ const Home = () => {
                     margin: 1
                 }}
                 ><BuildIcon></BuildIcon></Box>
-                <Typography variant='p1'>Reveal an explanation for the prediction on command if your users require more information.</Typography>
+                <Typography variant='p1'>A proactive interaction refers to when an AI proactively interacts with the user by trying to predict and prioritize the information that the user will want.</Typography>
             </Box>
         </Box>
         </Box>

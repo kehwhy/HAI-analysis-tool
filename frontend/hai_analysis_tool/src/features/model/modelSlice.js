@@ -12,6 +12,112 @@ export const modelSlice = createSlice({
         accuracy: "",
       }
     },
+    privilegeMap: {
+      'Mean Difference': {
+        'sex': {
+          'Male': {
+            'privileged': [],
+            'unprivileged': [],
+          }, 
+          'Female': {
+            'privileged': [],
+            'unprivileged': [],
+          }
+        },
+        'age_cat': {
+          'age_cat_less_than_25': {
+            'privileged': [],
+            'unprivileged': [],
+          }, 
+          'age_cat_25_to_45': {
+            'privileged': [],
+            'unprivileged': [],
+          },
+          'age_cat_greater_than_45': {
+            'privileged': [],
+            'unprivileged': [],
+          },
+        },
+        'race': {
+          'African-American': {
+            'privileged': [],
+            'unprivileged': [],
+          }, 
+          'Asian': {
+            'privileged': [],
+            'unprivileged': [],
+          },
+          'Caucasion': {
+            'privileged': [],
+            'unprivileged': [],
+          },
+          'Hispanic': {
+            'privileged': [],
+            'unprivileged': [],
+          }, 
+          'Native American': {
+            'privileged': [],
+            'unprivileged': [],
+          },
+          'Other': {
+            'privileged': [],
+            'unprivileged': [],
+          }
+        }
+      },
+      'Disparate Impact': {
+        'sex': {
+          'Male': {
+            'privileged': [],
+            'unprivileged': [],
+          }, 
+          'Female': {
+            'privileged': [],
+            'unprivileged': [],
+          }
+        },
+        'age_cat': {
+          'age_cat_less_than_25': {
+            'privileged': [],
+            'unprivileged': [],
+          }, 
+          'age_cat_25_to_45': {
+            'privileged': [],
+            'unprivileged': [],
+          },
+          'age_cat_greater_than_45': {
+            'privileged': [],
+            'unprivileged': [],
+          },
+        },
+        'race': {
+          'African-American': {
+            'privileged': [],
+            'unprivileged': [],
+          }, 
+          'Asian': {
+            'privileged': [],
+            'unprivileged': [],
+          },
+          'Caucasion': {
+            'privileged': [],
+            'unprivileged': [],
+          },
+          'Hispanic': {
+            'privileged': [],
+            'unprivileged': [],
+          }, 
+          'Native American': {
+            'privileged': [],
+            'unprivileged': [],
+          },
+          'Other': {
+            'privileged': [],
+            'unprivileged': [],
+          }
+        }
+      }
+    }
   },
   reducers: {
     setFeatures: (state, action) => {
@@ -62,10 +168,39 @@ export const modelSlice = createSlice({
             state.features[i].defaultValue = action.payload.value
         }
     }
+    }, 
+    setPrivilegeMap: (state, action) => {
+      var categories = action.payload['Mean Difference']
+      var cat_keys = Object.keys(categories)
+      for (var i = 0; i < cat_keys.length; i++) {
+        var items = (categories[cat_keys[i]])
+        var item_keys = Object.keys(items)
+        for (var j = 0; j < item_keys.length; j++) {
+          if (item_keys[j] < 0) {
+           state.privilegeMap['Mean Difference'][cat_keys[i]][categories[cat_keys[i]][item_keys[j]]['unprivileged']].privileged.push([categories[cat_keys[i]][item_keys[j]]['privileged']])
+          } else {
+            state.privilegeMap['Mean Difference'][cat_keys[i]][categories[cat_keys[i]][item_keys[j]]['unprivileged']].unprivileged.push([categories[cat_keys[i]][item_keys[j]]['privileged']])
+          }
+        }
+      }
+
+      categories = action.payload['Disparate Impact']
+      cat_keys = Object.keys(categories)
+      for (i = 0; i < cat_keys.length; i++) {
+        items = (categories[cat_keys[i]])
+        item_keys = Object.keys(items)
+        for (j = 0; j < item_keys.length; j++) {
+          if (item_keys[j] < 1) {
+            state.privilegeMap['Disparate Impact'][cat_keys[i]][categories[cat_keys[i]][item_keys[j]]['privileged']].unprivileged.push([categories[cat_keys[i]][item_keys[j]]['unprivileged']])
+          } else {
+            state.privilegeMap['Disparate Impact'][cat_keys[i]][categories[cat_keys[i]][item_keys[j]]['privileged']].privileged.push([categories[cat_keys[i]][item_keys[j]]['unprivileged']])
+          }
+        }
+      }
     }
   },
 })
 
-export const { setFeatures, setRecidivismScore, setProtectedFeatures, setModelInfo, setFeatureValue } = modelSlice.actions
+export const { setFeatures, setRecidivismScore, setProtectedFeatures, setModelInfo, setFeatureValue, setPrivilegeMap } = modelSlice.actions
 
 export default modelSlice.reducer
