@@ -101,7 +101,7 @@ const ProactiveProtectedList = ({setBiasInfo, setShowBiasInfo, setCurrFeature}) 
                                     <Box sx={{display:'inline-block'}}>
                                         {mean_difference[feature.name][getMappedValue(feature.name, value)].privileged.map((group) => {
                                             return (
-                                                <Box sx={{ display:'inline-block', margin:2}}>
+                                                <Box sx={{ display:'inline-block', margin:1}}>
                                                     <Button onClick={(e) => onCalculateBiasMetrics(feature.name, value, getReverseMappedValue(feature.name, group[0]))} color='success' variant='contained'>{getReverseMappedValue(feature.name, group[0])}</Button>
                                                 </Box>
                                             )
@@ -109,7 +109,7 @@ const ProactiveProtectedList = ({setBiasInfo, setShowBiasInfo, setCurrFeature}) 
                                     </Box>
                                     {mean_difference[feature.name][getMappedValue(feature.name, value)].unprivileged.map((group) => {
                                             return (
-                                                <Box sx={{display:'inline-block', margin:2}}>
+                                                <Box sx={{display:'inline-block', margin:1}}>
                                                     <Button onClick={(e) => onCalculateBiasMetrics(feature.name, value, getReverseMappedValue(feature.name, group[0]))} color='error' variant='contained'>{getReverseMappedValue(feature.name, group[0])}</Button>
                                                 </Box>
                                             )
